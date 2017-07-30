@@ -12,12 +12,16 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * 服务端，利用AIDL与客户端通信
+ */
 public class RemoteAidlService extends Service {
     private static final String TAG = "AidlTest";
     private static final int START_ALL_CLIENT = 0;
     private static final int STOP_ALL_CLIENT = 1;
+//    模拟服务端存储客户端传递的数据
     private List<Person> mPersonList = new ArrayList<>();
+//    一个服务端可以对应多个客户端，即包含多个ClientCallback对象，客户端注册时add，取消注册时remove
     private List<ClientCallback> mCallbackList = new ArrayList<>();
 //    通过修改值确定是否在regist后start客户端，默认不启动
     private boolean isAutoStartAfterRegist = false;
@@ -28,9 +32,16 @@ public class RemoteAidlService extends Service {
         return mRemoteInterface;
     }
 
+    /**
+     * RemoteInterface.Stub为Android根据aidl文件生成的实现类，
+     * 实现了RemoteInterface接口，间接实现了IBinder接口，
+     * 客户端绑定时将mRemoteInterface对象返回给客户端，
+     * 在服务端定义，在客户端调用
+     */
     private RemoteInterface.Stub mRemoteInterface = new RemoteInterface.Stub() {
         @Override
         public Person getPersonById(int id) throws RemoteException {
+//            返回固定值
             Person person = new Person();
             person.setId(id);
             person.setName("小红");
@@ -79,6 +90,9 @@ public class RemoteAidlService extends Service {
         }
     };
 
+    /**
+     * 调用所有客户端的start()方法
+     */
     public void startAllClient() {
         Log.d(TAG, "Service startAllClient()");
         for (ClientCallback callback : mCallbackList) {
@@ -90,6 +104,9 @@ public class RemoteAidlService extends Service {
         }
     }
 
+    /**
+     * 调用所有客户端的stop()方法
+     */
     public void stopAllClient() {
         Log.d(TAG, "Service stopAllClient()");
         for (ClientCallback callback : mCallbackList) {

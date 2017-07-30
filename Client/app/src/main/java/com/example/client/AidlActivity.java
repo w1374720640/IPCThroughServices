@@ -6,7 +6,6 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -15,14 +14,19 @@ import com.example.service.ClientCallback;
 import com.example.service.Person;
 import com.example.service.RemoteInterface;
 
-
+/**
+ * 通过aidl进行进程间通信
+ */
 public class AidlActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static final String TAG = "AidlTest";
     private boolean isConnect;
 
+//    服务端的RemoteInterface对象，绑定服务时创建
     private RemoteInterface mRemoteInterface = null;
 
+//    客户端的ClientCallback对象
+//    在服务端注册后服务端可以调用客户端方法
     private ClientCallback.Stub mClientCallback = new ClientCallback.Stub() {
         @Override
         public void start() throws RemoteException {
@@ -51,6 +55,7 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             isConnect = true;
+//            绑定服务后从服务端获取RemoteInterface对象
             mRemoteInterface = RemoteInterface.Stub.asInterface(service);
         }
 
@@ -106,6 +111,9 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         disConnectService();
     }
 
+    /**
+     * 从服务端获取数据
+     */
     private Person getPerson(int id) {
         Log.d(TAG,"Client getPerson()");
         if (!isConnect) return null;
@@ -118,6 +126,9 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         return person;
     }
 
+    /**
+     * 向服务端添加数据
+     */
     private void addPerson(Person person) {
         Log.d(TAG,"Client addPerson()");
         if (!isConnect) return;
@@ -128,6 +139,9 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * 向服务端注册回调，注册后服务端才能调用客户端方法
+     */
     private void registCallback() {
         Log.d(TAG,"Client registCallback()");
         if (!isConnect) return;
@@ -138,6 +152,9 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    /**
+     * 取消注册
+     */
     private void unRegistCallback() {
         Log.d(TAG,"Client unRegistCallback()");
         if (!isConnect) return;

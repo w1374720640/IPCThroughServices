@@ -12,9 +12,16 @@ import android.util.Log;
 
 import java.util.Random;
 
-
+/**
+ * 服务端，利用Messenger与客户端通信
+ */
 public class RemoteMessengerService extends Service {
     private static final String TAG = "MessengerTest";
+
+    /**
+     * 服务端的Handler，Messenger对象包含Handler的引用，
+     * 客户端通过Messenger发送的消息由服务端的Handler处理
+     */
     Handler mRemoteHandler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
@@ -26,6 +33,7 @@ public class RemoteMessengerService extends Service {
                     Random random = new Random();
                     message.arg1 = random.nextInt(100);
 //                    msg的replyTo变量是客户端生成的Messenger对象
+//                    如果为空则不能由服务端向客户端传递消息，只能单向通信
                     Messenger mClientMessenger = msg.replyTo;
                     if (mClientMessenger == null) return;
                     try {
@@ -42,13 +50,13 @@ public class RemoteMessengerService extends Service {
         }
     };
 
-
+//    利用mRemoteHandler对象创建一个Messenger对象
     Messenger mRemoteMessenger = new Messenger(mRemoteHandler);
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-//        将服务端的Messenger对象传递给客户端
+//        通过Messenger得到一个IBinder对象，通过onBind方法返回给客户端
         return mRemoteMessenger.getBinder();
     }
 }
