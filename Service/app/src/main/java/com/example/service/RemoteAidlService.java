@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -21,8 +22,9 @@ public class RemoteAidlService extends Service {
     private static final int STOP_ALL_CLIENT = 1;
 //    模拟服务端存储客户端传递的数据
     private List<Person> mPersonList = new ArrayList<>();
-//    一个服务端可以对应多个客户端，即包含多个ClientCallback对象，客户端注册时add，取消注册时remove
-    private List<ClientCallback> mCallbackList = new ArrayList<>();
+//    一个服务端可以对应多个客户端，即包含多个ClientCallback对象，
+//    使用RemoteCallbackList可以在客户端意外断开连接时移除ClientCallback，防止DeadObjectException
+    private RemoteCallbackList<ClientCallback> mCallbackList = new RemoteCallbackList<>();
 //    通过修改值确定是否在regist后start客户端，默认不启动
     private boolean isAutoStartAfterRegist = false;
 
@@ -30,6 +32,13 @@ public class RemoteAidlService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return mRemoteInterface;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+//        服务结束是注意移除所有数据
+        mCallbackList.kill();
     }
 
     /**
@@ -60,7 +69,8 @@ public class RemoteAidlService extends Service {
 
         @Override
         public void registClientCallback(ClientCallback callback) throws RemoteException {
-            mCallbackList.add(callback);
+//            向服务端注册回调
+            mCallbackList.register(callback);
             Log.d(TAG, "Service registClientCallback()");
             if (isAutoStartAfterRegist) {
                 mHandler.sendEmptyMessageDelayed(START_ALL_CLIENT, 3 * 1000);
@@ -69,7 +79,8 @@ public class RemoteAidlService extends Service {
 
         @Override
         public void unRegistClientCallback(ClientCallback callback) throws RemoteException {
-            mCallbackList.remove(callback);
+//            服务端取消注册回调
+            mCallbackList.unregister(callback);
             Log.d(TAG, "Service unRegistClientCallback()");
         }
 
@@ -95,13 +106,16 @@ public class RemoteAidlService extends Service {
      */
     public void startAllClient() {
         Log.d(TAG, "Service startAllClient()");
-        for (ClientCallback callback : mCallbackList) {
+//        从列表中取数据时先调用beginBroadcast()方法获取总数，循环取出数据后finishBroadcast()
+        int size = mCallbackList.beginBroadcast();
+        for (int i = 0;i < size;i++){
             try {
-                callback.start();
+                mCallbackList.getBroadcastItem(i).start();
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
+        mCallbackList.finishBroadcast();
     }
 
     /**
@@ -109,12 +123,14 @@ public class RemoteAidlService extends Service {
      */
     public void stopAllClient() {
         Log.d(TAG, "Service stopAllClient()");
-        for (ClientCallback callback : mCallbackList) {
+        int size = mCallbackList.beginBroadcast();
+        for (int i = 0;i < size;i++){
             try {
-                callback.stop();
+                mCallbackList.getBroadcastItem(i).stop();
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         }
+        mCallbackList.finishBroadcast();
     }
 }

@@ -62,6 +62,8 @@ public class AidlActivity extends AppCompatActivity implements View.OnClickListe
         @Override
         public void onServiceDisconnected(ComponentName name) {
             isConnect = false;
+//            与服务端意外断开时自动重连
+            connectService();
         }
     };
 
